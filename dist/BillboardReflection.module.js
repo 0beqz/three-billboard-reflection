@@ -1,4 +1,4 @@
-import { Color } from 'three';
+import * as THREE from 'three';
 
 function _classPrivateFieldGet(receiver, privateMap) {
   var descriptor = _classExtractFieldDescriptor(receiver, privateMap, "get");
@@ -20,6 +20,18 @@ function _classApplyDescriptorGet(receiver, descriptor) {
   }
 
   return descriptor.value;
+}
+
+function _checkPrivateRedeclaration(obj, privateCollection) {
+  if (privateCollection.has(obj)) {
+    throw new TypeError("Cannot initialize the same private elements twice on an object");
+  }
+}
+
+function _classPrivateFieldInitSpec(obj, privateMap, value) {
+  _checkPrivateRedeclaration(obj, privateMap);
+
+  privateMap.set(obj, value);
 }
 
 const unrollLoopPattern = /#pragma unroll_loop_start\s+for\s*\(\s*int\s+i\s*=\s*(\d+)\s*;\s*i\s*<\s*(\d+)\s*;\s*i\s*\+\+\s*\)\s*{([\s\S]+?)}\s+#pragma unroll_loop_end/g;
@@ -105,7 +117,7 @@ vec4 computeBillboardReflection(vec3 wPos, vec3 wReflectVec, inout float shortes
   if(shortestOpaqueBillboardDistance <= uvt.z){
     return reflectClr;
   }
-  if(uvt.x > 0. && uvt.x < 1. &&    uvt.y > 0. && uvt.y < 1.){
+  if(uvt.x > 0. && uvt.x < 1.   &&    uvt.y > 0. && uvt.y < 1.){
     if(uvt.z <= 0.001){
       return reflectClr;
     }
@@ -131,10 +143,7 @@ vec4 computeBillboardReflection(vec3 wPos, vec3 wReflectVec, inout float shortes
     if(reflectedBillboardClr.a == 1.){
       shortestOpaqueBillboardDistance = uvt.z;
     }
-    reflectClr = vec4(
-      srgb_to_rgb_approx(reflectedBillboardClr.rgb) * color, 1.
-    )
-    * reflectedBillboardClr.a * (1. - roughnessValue * roughnessValue);
+    reflectClr = vec4(reflectedBillboardClr.rgb * color, 1.) * reflectedBillboardClr.a * (1. - roughnessValue * roughnessValue);
   }
   return reflectClr;
 }
@@ -163,36 +172,14 @@ vec4 computeAllBillboardReflections(vec3 wPos, vec3 wReflectVec, float roughness
     }
 `;
 const billboard_lights_fragment_maps = `
-#if defined( RE_IndirectDiffuse )
-	#ifdef USE_LIGHTMAP
-		vec4 lightMapTexel= texture2D( lightMap, vUv2 );
-		vec3 lightMapIrradiance = lightMapTexelToLinear( lightMapTexel ).rgb * lightMapIntensity;
-		#ifndef PHYSICALLY_CORRECT_LIGHTS
-			lightMapIrradiance *= PI;
-		#endif
-		irradiance += lightMapIrradiance;
-	#endif
-	#if defined( USE_ENVMAP ) && defined( STANDARD ) && defined( ENVMAP_TYPE_CUBE_UV )
-		iblIrradiance += getLightProbeIndirectIrradiance( geometry, maxMipLevel );
-	#endif
+#include <lights_fragment_maps>
+vec3 billboardWorldNormal = inverseTransformDirection( geometry.normal, viewMatrix );
+vec3 billboardReflectVec = reflect(cameraDirection, billboardWorldNormal);
+vec4 billboardClr = computeAllBillboardReflections(vPosition, billboardReflectVec, material.roughness, 1.);
+#ifdef USE_ENVMAP
+  billboardClr.rgb *= envMapIntensity;
 #endif
-#if defined( USE_ENVMAP ) && defined( RE_IndirectSpecular )
-  vec3 indirectRadiance = getLightProbeIndirectRadiance( geometry.viewDir, geometry.normal, material.specularRoughness, maxMipLevel );
-  vec3 worldNormal = inverseTransformDirection( geometry.normal, viewMatrix );
-  
-  vec3 reflectVec = reflect(cameraDirection, worldNormal);
-  vec4 billboardClr = computeAllBillboardReflections(vPosition, reflectVec, roughnessFactor, envMapIntensity);
-  radiance = mix(indirectRadiance, billboardClr.rgb, billboardClr.a);
-	#ifdef CLEARCOAT
-		clearcoatRadiance += getLightProbeIndirectRadiance( geometry.viewDir, geometry.clearcoatNormal, material.clearcoatRoughness, maxMipLevel );
-	#endif
-#else
-  vec3 worldNormal = inverseTransformDirection( geometry.normal, viewMatrix );
-  
-  vec3 reflectVec = reflect(cameraDirection, worldNormal);
-  vec4 billboardClr = computeAllBillboardReflections(vPosition, reflectVec, roughnessFactor, 1.);
-  radiance = billboardClr.rgb;
-#endif`;
+radiance = mix(radiance, billboardClr.rgb, billboardClr.a);`;
 
 const createBillboardFragmentUniforms = (billboardCount, billboardTextureCount) => {
   return billboardFragmentUniforms.replace(/BILLBOARD_COUNT/g, billboardCount).replace(/BILLBOARD_TEXTURE_COUNT/g, billboardTextureCount);
@@ -204,7 +191,7 @@ var _billboards = /*#__PURE__*/new WeakMap();
 
 class BillboardReflection {
   constructor() {
-    _billboards.set(this, {
+    _classPrivateFieldInitSpec(this, _billboards, {
       writable: true,
       value: []
     });
@@ -248,7 +235,7 @@ class BillboardReflection {
 
   createFromTextureAndMatrix(texture, matrixWorld, {
     rayFalloff = 0,
-    color = new Color(),
+    color = new THREE.Color(),
     opacity = 1,
     visible = true
   } = {}) {
@@ -289,6 +276,7 @@ class BillboardReflection {
       billboardReflectionsFunctions = billboardReflectionsFunctions.replace(new RegExp("billboardTextures\\[\\s" + i + "\\s\\]", "g"), "billboardTextures[ " + billboardTexturesIndices[i] + " ]");
     }
 
+    shader.defines = shader.defines || {};
     shader.defines.REFLECTION_ROUGHNESS_BLUR = roughnessMapBlur && shader.roughnessMap;
     shader.defines.REFLECTION_ROUGHNESS_MAP_BLUR_INTENSITY = roughnessMapBlurIntensity.toFixed(5);
     shader.uniforms.billboardTextures = {
@@ -309,4 +297,4 @@ class BillboardReflection {
 
 }
 
-export default BillboardReflection;
+export { BillboardReflection as default };
