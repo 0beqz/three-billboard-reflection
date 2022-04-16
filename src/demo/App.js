@@ -7,7 +7,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader"
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader'
 import { folder, useControls } from "leva"
-import { DoubleSide, LinearFilter, MeshBasicMaterial, Vector2, WebGLCubeRenderTarget, PMREMGenerator, TextureLoader, Color } from "three"
+import { DoubleSide, LinearFilter, MeshBasicMaterial, Vector2, PMREMGenerator } from "three"
 import BillboardReflection from "../billboard-reflection/BillboardReflection"
 
 extend({ OrbitControls })
@@ -22,7 +22,7 @@ function Controls() {
     controls.current.update()
   })
 
-  return <orbitControls ref={controls} args={[camera, gl.domElement]} enablePan={false} enableDamping dampingFactor={0.1} rotateSpeed={0.5} />
+  return <orbitControls ref={controls} args={[camera, gl.domElement]} enablePan={false} enableDamping dampingFactor={0.1} rotateSpeed={0.25} />
 }
 
 function Part() {

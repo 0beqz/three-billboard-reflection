@@ -87,7 +87,7 @@ vec4 computeBillboardReflection(vec3 wPos, vec3 wReflectVec, inout float shortes
   }
 
   // check if the reflected ray hit a billboard
-  if(uvt.x > 0. && uvt.x < 1. &&    uvt.y > 0. && uvt.y < 1.){
+  if(uvt.x > 0. && uvt.x < 1.   &&    uvt.y > 0. && uvt.y < 1.){
     if(uvt.z <= 0.001){
       return reflectClr;
     }
@@ -123,10 +123,7 @@ vec4 computeBillboardReflection(vec3 wPos, vec3 wReflectVec, inout float shortes
     }
 
     // final reflected color
-    reflectClr = vec4(
-      srgb_to_rgb_approx(reflectedBillboardClr.rgb) * color, 1.
-    )
-    * reflectedBillboardClr.a * (1. - roughnessValue * roughnessValue);
+    reflectClr = vec4(reflectedBillboardClr.rgb * color, 1.) * reflectedBillboardClr.a * (1. - roughnessValue * roughnessValue);
   }
 
   return reflectClr;
@@ -170,40 +167,19 @@ vec4 computeAllBillboardReflections(vec3 wPos, vec3 wReflectVec, float roughness
 
 // modified lights_fragment_maps shader to add billboard reflections along with indirect environment irradiance
 const billboard_lights_fragment_maps = /* glsl */`
-#if defined( RE_IndirectDiffuse )
-	#ifdef USE_LIGHTMAP
-		vec4 lightMapTexel= texture2D( lightMap, vUv2 );
-		vec3 lightMapIrradiance = lightMapTexelToLinear( lightMapTexel ).rgb * lightMapIntensity;
-		#ifndef PHYSICALLY_CORRECT_LIGHTS
-			lightMapIrradiance *= PI; // factor of PI should not be present; included here to prevent breakage
-		#endif
-		irradiance += lightMapIrradiance;
-	#endif
-	#if defined( USE_ENVMAP ) && defined( STANDARD ) && defined( ENVMAP_TYPE_CUBE_UV )
-		iblIrradiance += getLightProbeIndirectIrradiance( /*lightProbe,*/ geometry, maxMipLevel );
-	#endif
+#include <lights_fragment_maps>
+
+vec3 billboardWorldNormal = inverseTransformDirection( geometry.normal, viewMatrix );
+vec3 billboardReflectVec = reflect(cameraDirection, billboardWorldNormal);
+
+vec4 billboardClr = computeAllBillboardReflections(vPosition, billboardReflectVec, material.roughness, 1.);
+
+#ifdef USE_ENVMAP
+  billboardClr.rgb *= envMapIntensity;
 #endif
-#if defined( USE_ENVMAP ) && defined( RE_IndirectSpecular )
-  vec3 indirectRadiance = getLightProbeIndirectRadiance( /*specularLightProbe,*/ geometry.viewDir, geometry.normal, material.specularRoughness, maxMipLevel );
 
-  vec3 worldNormal = inverseTransformDirection( geometry.normal, viewMatrix );
-  
-  vec3 reflectVec = reflect(cameraDirection, worldNormal);
-  vec4 billboardClr = computeAllBillboardReflections(vPosition, reflectVec, roughnessFactor, envMapIntensity);
-
-  radiance = mix(indirectRadiance, billboardClr.rgb, billboardClr.a);
-
-	#ifdef CLEARCOAT
-		clearcoatRadiance += getLightProbeIndirectRadiance( /*specularLightProbe,*/ geometry.viewDir, geometry.clearcoatNormal, material.clearcoatRoughness, maxMipLevel );
-	#endif
-#else
-  vec3 worldNormal = inverseTransformDirection( geometry.normal, viewMatrix );
-  
-  vec3 reflectVec = reflect(cameraDirection, worldNormal);
-  vec4 billboardClr = computeAllBillboardReflections(vPosition, reflectVec, roughnessFactor, 1.);
-
-  radiance = billboardClr.rgb;
-#endif
+// add to radiance
+radiance = mix(radiance, billboardClr.rgb, billboardClr.a);
 `
 
 // functions for creating shaders
