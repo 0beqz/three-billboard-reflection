@@ -94,6 +94,8 @@ export default class BillboardReflection {
         }
 
         // defines
+        shader.defines = shader.defines || {}
+        
         // enable reflection blur only if not toggled off and when the shader has a roughness map
         shader.defines.REFLECTION_ROUGHNESS_BLUR = roughnessMapBlur && shader.roughnessMap
         shader.defines.REFLECTION_ROUGHNESS_MAP_BLUR_INTENSITY = roughnessMapBlurIntensity.toFixed(5)
