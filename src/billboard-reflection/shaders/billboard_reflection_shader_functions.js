@@ -1,4 +1,4 @@
-﻿import { mip_map_level, srgb_to_rgb_approx, unrollLoops } from "./ShaderHelpers"
+﻿import { mip_map_level, unrollLoops } from "./ShaderHelpers"
 
 // varying variables
 const billboardVarying = /* glsl */`
@@ -61,7 +61,6 @@ vec3 intersectTriangle(vec3 rayOrig, vec3 rayDir, vec3 vector0, vec3 vector1, ve
 // compute reflection for single billboard
 const computeBillboardReflectionFunction = /* glsl */`
 ${mip_map_level}
-${srgb_to_rgb_approx}
 
 ${intersectTriangleFunction}
 
@@ -70,9 +69,9 @@ vec4 computeBillboardReflection(vec3 wPos, vec3 wReflectVec, inout float shortes
   
   vec4 reflectClr = vec4(0);
   
-  vec3 vector0 = vec3( 1.,  0.,  1.);
-  vec3 vector1 = vec3(-1.,  0., -1.);
-  vec3 vector2 = vec3(-1.,  0.,  1.);
+  vec3 vector0 = vec3( 0.5,  -0.5,   0.);
+  vec3 vector1 = vec3(-0.5,   0.5,   0.);
+  vec3 vector2 = vec3(-0.5,  -0.5,   0.);
 
   vector0 = (matrixWorld * vec4(vector0, 1.)).xyz;
   vector1 = (matrixWorld * vec4(vector1, 1.)).xyz;

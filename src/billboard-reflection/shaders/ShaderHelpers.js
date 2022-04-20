@@ -37,12 +37,3 @@ float mip_map_level(in vec2 texture_coordinate){
 
   return 0.5 * log2(delta_max_sqr);
 }`
-
-// source: https://github.com/tobspr/GLSL-Color-Spaces/blob/master/ColorSpaces.inc.glsl#L81
-// Converts a srgb color to a rgb color (approximated, but fast)
-export const srgb_to_rgb_approx = /* glsl */`
-const float SRGB_INVERSE_GAMMA = 2.2;
-
-vec3 srgb_to_rgb_approx(vec3 srgb) {
-    return pow(srgb, vec3(SRGB_INVERSE_GAMMA));
-}`
