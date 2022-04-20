@@ -57,11 +57,6 @@ float mip_map_level(in vec2 texture_coordinate){
   float delta_max_sqr = max(dot(dx_vtc, dx_vtc), dot(dy_vtc, dy_vtc));
   return 0.5 * log2(delta_max_sqr);
 }`;
-const srgb_to_rgb_approx = `
-const float SRGB_INVERSE_GAMMA = 2.2;
-vec3 srgb_to_rgb_approx(vec3 srgb) {
-    return pow(srgb, vec3(SRGB_INVERSE_GAMMA));
-}`;
 
 const billboardVarying = `varying vec3 vPosition;
 varying vec3 cameraDirection;
@@ -100,16 +95,15 @@ vec3 intersectTriangle(vec3 rayOrig, vec3 rayDir, vec3 vector0, vec3 vector1, ve
 `;
 const computeBillboardReflectionFunction = `
 ${mip_map_level}
-${srgb_to_rgb_approx}
 ${intersectTriangleFunction}
 vec4 computeBillboardReflection(vec3 wPos, vec3 wReflectVec, inout float shortestOpaqueBillboardDistance, float roughnessValue,
   mat4 matrixWorld, sampler2D tBillboard, vec3 color, float rayFalloff, float opacity){
   
   vec4 reflectClr = vec4(0);
   
-  vec3 vector0 = vec3( 1.,  0.,  1.);
-  vec3 vector1 = vec3(-1.,  0., -1.);
-  vec3 vector2 = vec3(-1.,  0.,  1.);
+  vec3 vector0 = vec3( 0.5,  -0.5,   0.);
+  vec3 vector1 = vec3(-0.5,   0.5,   0.);
+  vec3 vector2 = vec3(-0.5,  -0.5,   0.);
   vector0 = (matrixWorld * vec4(vector0, 1.)).xyz;
   vector1 = (matrixWorld * vec4(vector1, 1.)).xyz;
   vector2 = (matrixWorld * vec4(vector2, 1.)).xyz;
